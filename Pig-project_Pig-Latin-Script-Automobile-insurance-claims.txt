@@ -1,0 +1,70 @@
+/*
+1. Load automobile insurance claims data set into the relation claims
+*/
+claims = LOAD '/user/1611jianlei/data/automobile_insurance_claims.csv' USING  PigStorage(',') AS (claim_id:chararray, policy_master_id:chararray, registration_no:chararray, engine_no:chararray, chassis_no:chararray, customer_id:int,age:int,first_name:chararray, last_name:chararray,street:chararray,address:chararray,	city:chararray,	zip:long,gender:chararray, claim_date:chararray, garage_city:chararray,bill_no:long,claim_amount: chararray, garage_name:chararray,claim_status:chararray);
+
+/*
+2. group by claim_status and sum
+*/
+
+groupCS = group claims by claim_status;
+groupSUM = foreach groupCS generate group, COUNT(claims);
+dump groupSUM
+store groupSUM into 'HW6/groupSUM’;
+
+/*
+output: (INPROGRESS,1211)
+*/
+
+/*
+3. create dataset which only have claim_id:chararray,customer_id:int,age:int,first_name:chararray, last_name:chararray
+*/
+
+subDataSet = foreach claims generate claim_id, customer_id, age, first_name, last_name;
+
+/*
+4. find top 5 group by age
+*/
+
+groupAge = group subDataSet by age;
+groupAgeSum = foreach groupAge generate group, COUNT(subDataSet);
+groupAgeSumSort = order groupAgeSum by group DESC;
+user5 = limit groupAgeSumSort 5;
+dump user5
+store user5 into 'HW6/top5GroupbyAge’;
+
+/*
+output:
+(67,10)
+(64,12)
+(61,21)
+(60,14)
+(59,12)
+*/
+
+/*
+5. Validate the values in the column policy_master_id with a regular expression to match the pattern where the value should start with an alphabet followed by three digits.
+The values that do not match the pattern or length are considered as invalid values and are removed.
+MATCHES '[aA-zZ][0-9]{3}'
+*/
+
+filterData = FILTER claims BY (policy_master_id MATCHES '[aA-zZ][0-9]{3}');
+cfilterData = foreach (group filterData ALL) generate COUNT(filterData); 
+dump cfilterData
+store filterData into 'HW6/filterData';
+
+/*
+output: 1209
+*/
+
+OR
+
+split claims into valid_claims if(policy_master_id MATCHES '[aA-zZ][0-9]{3}'), invalid_claims OTHERWISE;
+
+QA. 
+
+1) Pig vs. Spark
+
+Spark => better for streaming language, need scala programming
+Pig => avoid java programming
+
